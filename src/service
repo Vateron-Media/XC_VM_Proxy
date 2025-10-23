@@ -1,0 +1,67 @@
+#!/bin/sh
+
+SCRIPT=/home/xc_vm
+USER=$(whoami)
+
+if [ $USER != "root" ]; then
+  echo "Please run as root!"
+  exit 0
+fi
+
+start() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids != 0 ]; then
+    echo 'XC_VM is already running'
+    return 1
+  fi
+  echo 'Starting XC_VM...'
+  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
+  sudo $SCRIPT/bin/php/bin/php $SCRIPT/includes/startup.php
+  echo 'Running in foreground...'
+  sleep infinity
+  
+}
+
+stop() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids = 0 ]; then
+    echo 'XC_VM is not running'
+    return 1
+  fi
+  echo 'Stopping XC_VM...'
+  sudo killall -u xc_vm
+  sleep 1
+  sudo killall -u xc_vm
+  sleep 1
+  sudo killall -u xc_vm
+}
+
+reload() {
+  pids=$(pgrep -u xc_vm nginx | wc -l)
+  if [ $pids = 0 ]; then
+    echo 'XC_VM is not running'
+    return 1
+  fi
+  echo 'Reloading XC_VM...'
+  sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx -s reload
+}
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  reload)
+    reload
+    ;;
+  retart)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|reload}"
+esac
+
+exit 0
