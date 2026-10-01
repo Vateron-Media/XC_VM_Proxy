@@ -31,7 +31,7 @@ GIT_SHA           := $(shell git rev-parse --short HEAD 2>/dev/null || echo unkn
 # Reproducible mtime: commit time of HEAD — stable per tag, never `date`/now.
 SOURCE_DATE_EPOCH := $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
 
-.PHONY: all build default clean stage set_permissions write_version \
+.PHONY: all build default clean stage set_permissions write_version check \
         verify_no_lfs_pointers archive hashes check-reproducible
 
 all: build
@@ -125,6 +125,10 @@ hashes:
 	@cd "$(DIST_DIR)" && md5sum    "$(ASSET)" > hashes.md5
 	@cd "$(DIST_DIR)" && sha256sum "$(ASSET)" > hashes.sha256
 	@cat "$(DIST_DIR)/hashes.md5" "$(DIST_DIR)/hashes.sha256"
+
+## The signed channel with MAIN against the panel's vectors (ProxyKeyTest).
+check:
+	@php tests/proxy_auth_check.php
 
 ## CI smoke: build twice, assert identical sha256 (proves determinism).
 check-reproducible:
