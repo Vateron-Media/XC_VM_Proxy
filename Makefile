@@ -31,7 +31,7 @@ GIT_SHA           := $(shell git rev-parse --short HEAD 2>/dev/null || echo unkn
 # Reproducible mtime: commit time of HEAD — stable per tag, never `date`/now.
 SOURCE_DATE_EPOCH := $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
 
-.PHONY: all build default clean stage set_permissions write_version \
+.PHONY: all build default clean stage set_permissions write_version check \
         verify_no_lfs_pointers archive hashes check-reproducible
 
 all: build
