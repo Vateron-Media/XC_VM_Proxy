@@ -129,19 +129,45 @@ function getStats() {
     return $rJSON;
 }
 
+require_once MAIN_HOME . 'includes/proxy_auth.php';
+
 $rConfig = parse_ini_file(MAIN_HOME . "config/config.ini");
 $rStats = getStats();
 $rAddresses = array_values(array_unique(array_map("trim", explode("\n", shell_exec("ip -4 addr | grep -oP '(?<=inet\s)\d+(\.\d+){3}'")))));
-$rData = array("stats" => $rStats, "addresses" => $rAddresses, "server_id" => intval($rConfig["server_id"]));
+$rServerID = intval($rConfig["server_id"]);
+$rData = array("stats" => $rStats, "addresses" => $rAddresses, "server_id" => $rServerID);
 $rURL = "http://" . $rConfig["hostname"] . ":" . $rConfig["port"] . "/admin/proxy_api";
+$rBody = http_build_query($rData);
+
+// With the key the panel installed, the request is signed and only a signed
+// answer's signals are run (the panel's ProxyKey, D8).
+$rKey = proxyKey(MAIN_HOME . "config/proxy.key");
+$rHeaders = array();
+if ($rKey !== null) {
+    $rNonce = bin2hex(random_bytes(16));
+    $rHeaders[] = "X-XCVM-Proxy-Auth: " . proxyAuthHeader($rKey, $rServerID, (int) floor(microtime(true) * 1000), $rNonce, $rBody);
+}
 
 $rCurl = curl_init();
 curl_setopt($rCurl, CURLOPT_URL, $rURL);
 curl_setopt($rCurl, CURLOPT_POST, 1);
-curl_setopt($rCurl, CURLOPT_POSTFIELDS, http_build_query($rData));
+curl_setopt($rCurl, CURLOPT_POSTFIELDS, $rBody);
+curl_setopt($rCurl, CURLOPT_HTTPHEADER, $rHeaders);
 curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
-$rSignals = json_decode(curl_exec($rCurl), True);
+$rRaw = (string) curl_exec($rCurl);
 curl_close($rCurl);
+
+if ($rKey !== null) {
+    $rSignals = proxyOpenAnswer($rKey, $rServerID, $rNonce, $rRaw);
+    if ($rSignals === null) {
+        echo "MAIN's answer does not verify: its signals are not run.\n";
+    }
+} else {
+    $rSignals = json_decode($rRaw, true);
+}
+if (!is_array($rSignals)) {
+    $rSignals = array();
+}
 
 $rSaveIPTables = false;
 foreach ($rSignals as $rSignal) {

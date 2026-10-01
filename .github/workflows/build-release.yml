@@ -47,6 +47,9 @@ jobs:
           ref: ${{ steps.tag.outputs.tag }}
           fetch-depth: 0        # tags needed for git describe / commit time
 
+      - name: Check the signed channel with MAIN
+        run: make check
+
       - name: Build archive
         run: make build VERSION=${{ steps.tag.outputs.tag }}
 

@@ -126,6 +126,10 @@ hashes:
 	@cd "$(DIST_DIR)" && sha256sum "$(ASSET)" > hashes.sha256
 	@cat "$(DIST_DIR)/hashes.md5" "$(DIST_DIR)/hashes.sha256"
 
+## The signed channel with MAIN against the panel's vectors (ProxyKeyTest).
+check:
+	@php tests/proxy_auth_check.php
+
 ## CI smoke: build twice, assert identical sha256 (proves determinism).
 check-reproducible:
 	@$(MAKE) --no-print-directory build >/dev/null
